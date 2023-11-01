@@ -1,5 +1,8 @@
 #include "mainwindowex3.h"
 #include "ui_mainwindowex3.h"
+#include <unistd.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 
 MainWindowEx3::MainWindowEx3(QWidget *parent):QMainWindow(parent),ui(new Ui::MainWindowEx3)
 {
@@ -136,19 +139,103 @@ const char* MainWindowEx3::getGroupe3()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void MainWindowEx3::on_pushButtonLancerRecherche_clicked()
 {
-  fprintf(stderr,"Clic sur le bouton Lancer Recherche\n");
-  // TO DO
-  int idFils1,idFils2,idFils3;
+    fprintf(stderr, "Clic sur le bouton Lancer Recherche\n");
+
+    pid_t idFils[3], id;
+    int retour, status;
+    int fd;
+    
+    fd = open("Trace.log", O_RDWR | O_CREAT | O_APPEND, 0666);
+    if (fd == -1) {
+        perror("Erreur de open()");
+        exit(1);
+    }
+
+    if (dup2(fd, STDERR_FILENO) == -1) {
+        perror("Erreur de dup2()");
+        exit(1);
+    }
+
+    if (recherche1Selectionnee() == true)
+    {
+      if ((id = fork()) == -1) 
+      {
+        perror("Erreur de fork");
+      } 
+      idFils[0] = id;
+      if (idFils[0] == 0)
+      {
+            if (execlp("Lecture", "Lecture", getGroupe1(), NULL) == -1) 
+            {
+                perror("Erreur execlp");
+            }
+      }
+    }
+    if (recherche2Selectionnee() == true)
+    {
+      if ((id = fork()) == -1) 
+      {
+        perror("Erreur de fork");
+      } 
+      idFils[1] = id;
+      if (idFils[1] == 0)
+      {
+            if (execlp("Lecture", "Lecture", getGroupe2(), NULL) == -1) 
+            {
+                perror("Erreur execlp");
+            }
+      }
+    }
+    if (recherche3Selectionnee() == true)
+    {
+      if ((id = fork()) == -1) 
+      {
+        perror("Erreur de fork");
+      } 
+      idFils[2] = id;
+      if (idFils[2] == 0)
+      {
+            if (execlp("Lecture", "Lecture", getGroupe3(), NULL) == -1) 
+            {
+                perror("Erreur execlp");
+            }
+      }
+    }
+
+    while ((retour = wait(&status)) != -1) {
+        if (!WIFEXITED(status)) {
+            printf("Fils non terminé par exit\n");
+        }
+
+        int retour_status = WEXITSTATUS(status);
+
+        if (retour == idFils[0]) {
+            setResultat1(retour_status);
+        } else if (retour == idFils[1]) {
+            setResultat2(retour_status);
+        } else if (retour == idFils[2]) {
+            setResultat3(retour_status);
+        }
+    }
 }
+
 
 void MainWindowEx3::on_pushButtonVider_clicked()
 {
-  fprintf(stderr,"Clic sur le bouton Vider\n");
+  fprintf(stderr,"Clic sur le bouton vider\n");
   // TO DO
+ui->lineEditGroupe1->clear();
+  ui->lineEditGroupe2->clear();
+  ui->lineEditGroupe3->clear();
+  ui->lineEditResultat1->clear();
+  ui->lineEditResultat2->clear();
+  ui->lineEditResultat3->clear();
+
 }
 
 void MainWindowEx3::on_pushButtonQuitter_clicked()
 {
   fprintf(stderr,"Clic sur le bouton Quitter\n");
   // TO DO
+  exit(0);
 }
